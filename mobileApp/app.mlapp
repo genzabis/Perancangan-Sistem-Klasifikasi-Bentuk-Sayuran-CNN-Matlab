@@ -1,0 +1,74 @@
+classdef VegetableClassifierApp < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure               matlab.ui.Figure
+        UploadButton           matlab.ui.control.Button
+        PredictButton          matlab.ui.control.Button
+        UIAxes                 matlab.ui.control.UIAxes
+        ResultLabel            matlab.ui.control.Label
+    end
+
+    properties (Access = private)
+        SelectedImage          % Path gambar yang diupload
+        TrainedNet             % Model yang sudah dilatih
+        ImageSize = [224 224]; % Ukuran input model
+    end
+
+    methods (Access = private)
+
+        % Callback: Upload Button
+        function UploadButtonPushed(app, event)
+            [file, path] = uigetfile({'*.jpg;*.png;*.jpeg','Image Files'});
+            if isequal(file,0)
+                return;
+            end
+            app.SelectedImage = fullfile(path, file);
+            img = imread(app.SelectedImage);
+            imshow(img, 'Parent', app.UIAxes);
+        end
+
+        % Callback: Predict Button
+        function PredictButtonPushed(app, event)
+            if isempty(app.SelectedImage)
+                uialert(app.UIFigure, 'Silakan upload gambar terlebih dahulu.', 'Peringatan');
+                return;
+            end
+
+            img = imread(app.SelectedImage);
+            img = imresize(img, app.ImageSize);
+            
+            predictedLabel = classify(app.TrainedNet, img);
+
+            app.ResultLabel.Text = ['Prediksi: ', char(predictedLabel)];
+        end
+    end
+
+    methods (Access = private)
+
+        % App initialization and construction
+        function startupFcn(app)
+            % Load model saat aplikasi dijalankan
+            model = load('models/trainedModel.mat');
+            app.TrainedNet = model.net;
+        end
+    end
+
+    methods (Access = public)
+
+        % Construct app
+        function app = VegetableClassifierApp
+
+            % Create and configure components
+            createComponents(app)
+
+            % Execute startup function
+            runStartupFcn(app, @startupFcn)
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+            delete(app.UIFigure)
+        end
+    end
+end
